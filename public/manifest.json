@@ -1,0 +1,20 @@
+{
+  "name": "دليل استخبارات مواقع التسويق بالعمولة وسيو قوقل",
+  "short_name": "سيو الكوبونات",
+  "description": "منصة كوبونات وعروض المتاجر الإلكترونية في السعودية والعالم العربي مع نظام متكامل لمزامنة إيرادات وعمولات شبكات الأفلييت آلياً وتوافق كامل مع سيو قوقل.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#059669",
+  "orientation": "portrait-primary",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

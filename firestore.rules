@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email == "alhatfhsab283@gmail.com" && request.auth.token.email_verified == true)
+      );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Admins list
+    match /admins/{userId} {
+      allow read: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow write: if isAdmin() && isValidId(userId);
+    }
+
+    // Public Collections: Merchants & Coupons (Public read, admin write)
+    match /merchants/{merchantId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(merchantId);
+    }
+
+    match /coupons/{couponId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(couponId);
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow create: if isOwner(userId) && isValidId(userId);
+      allow update: if (isOwner(userId) || isAdmin()) && isValidId(userId);
+      allow delete: if isAdmin();
+
+      // User favorites subcollection
+      match /favorites/{favoriteId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId) && isValidId(favoriteId);
+      }
+    }
+  }
+}

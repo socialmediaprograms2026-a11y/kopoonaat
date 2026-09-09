@@ -1,0 +1,86 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with authentication and role",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "format": "email", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 120 },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "email", "role", "createdAt"]
+    },
+    "Merchant": {
+      "title": "Merchant",
+      "description": "Affiliate partner store entity",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 120 },
+        "arabicName": { "type": "string", "maxLength": 120 },
+        "slug": { "type": "string", "maxLength": 120 },
+        "category": { "type": "string", "maxLength": 80 },
+        "affiliateNetwork": { "type": "string", "maxLength": 80 },
+        "affiliateUrl": { "type": "string", "maxLength": 1024 },
+        "commissionRate": { "type": "string", "maxLength": 50 },
+        "cookieDuration": { "type": "string", "maxLength": 50 },
+        "rating": { "type": "number" },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "name", "slug", "affiliateNetwork", "affiliateUrl"]
+    },
+    "Coupon": {
+      "title": "Coupon",
+      "description": "Discount coupon code or promotional deal",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "merchantId": { "type": "string", "maxLength": 128 },
+        "code": { "type": "string", "maxLength": 64 },
+        "discount": { "type": "string", "maxLength": 64 },
+        "description": { "type": "string", "maxLength": 300 },
+        "verified": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "merchantId", "code", "discount"]
+    },
+    "Favorite": {
+      "title": "Favorite",
+      "description": "User saved favorite merchants or deals",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "targetId": { "type": "string", "maxLength": 128 },
+        "type": { "type": "string", "enum": ["merchant", "coupon"] },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "targetId", "type"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and permissions"
+    },
+    "/admins/{userId}": {
+      "schema": "User",
+      "description": "Authorized administrator IDs"
+    },
+    "/merchants/{merchantId}": {
+      "schema": "Merchant",
+      "description": "Directory of partner stores and affiliate links"
+    },
+    "/coupons/{couponId}": {
+      "schema": "Coupon",
+      "description": "Active coupons and promo codes"
+    },
+    "/users/{userId}/favorites/{favoriteId}": {
+      "schema": "Favorite",
+      "description": "User private saved favorites and deals"
+    }
+  }
+}
