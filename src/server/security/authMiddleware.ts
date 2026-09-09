@@ -6,11 +6,14 @@ import { logAdminAction } from "./auditLogger";
 export const SUPER_ADMIN_EMAIL = "alhatfhsab283@gmail.com";
 const PROJECT_ID = firebaseConfig.projectId || "mega-sector-dthv3";
 
+export type AdminRole = "super_admin" | "admin" | "editor";
+
 export interface AuthenticatedAdminUser {
   uid: string;
   email: string;
   name?: string;
-  role: "admin";
+  role: AdminRole;
+  permissions: string[];
   authTime: number;
 }
 
@@ -189,7 +192,8 @@ export function requireAdminAuth(req: Request, res: Response, next: NextFunction
       uid: "service_admin",
       email: SUPER_ADMIN_EMAIL,
       name: "API Administrator",
-      role: "admin",
+      role: "super_admin",
+      permissions: ["*"],
       authTime: Date.now()
     };
     return next();
@@ -212,7 +216,7 @@ export function requireAdminAuth(req: Request, res: Response, next: NextFunction
 
   // 5. Authorize Admin Role (Super admin email or verified admin claims)
   const isSuperAdmin = userEmail === SUPER_ADMIN_EMAIL.toLowerCase();
-  const hasAdminClaim = payload.admin === true || payload.role === "admin";
+  const hasAdminClaim = payload.admin === true || payload.role === "admin" || payload.role === "super_admin" || payload.role === "editor";
 
   if (!isSuperAdmin && !hasAdminClaim) {
     recordFailedAuth(ip);
@@ -232,13 +236,24 @@ export function requireAdminAuth(req: Request, res: Response, next: NextFunction
     return;
   }
 
-  // 6. Successfully authenticated & authorized
+  // 6. Successfully authenticated & authorized with granular RBAC
   recordSuccessfulAuth(ip);
+  const assignedRole: AdminRole = isSuperAdmin 
+    ? "super_admin" 
+    : (payload.role === "editor" ? "editor" : "admin");
+
+  const permissions = isSuperAdmin 
+    ? ["*"] 
+    : assignedRole === "editor"
+    ? ["manage_coupons", "manage_products", "view_reports"]
+    : ["view_reports", "manage_merchants", "manage_coupons", "manage_products", "sync_niches", "verify_links", "view_wallet", "manage_integrations"];
+
   req.adminUser = {
     uid: userId,
     email: userEmail,
     name: payload.name || payload.display_name || "Admin",
-    role: "admin",
+    role: assignedRole,
+    permissions,
     authTime: payload.auth_time || Math.floor(Date.now() / 1000)
   };
 
@@ -246,25 +261,69 @@ export function requireAdminAuth(req: Request, res: Response, next: NextFunction
 }
 
 /**
+ * Express Middleware: Enforces specific RBAC roles
+ */
+export function requireRole(allowedRoles: AdminRole[]) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.adminUser) {
+      res.status(401).json({ 
+        error: "Unauthorized", 
+        message: "يتطلب الوصول تسجيل دخول مسؤول معتمد." 
+      });
+      return;
+    }
+    if (req.adminUser.role === "super_admin" || allowedRoles.includes(req.adminUser.role)) {
+      return next();
+    }
+    res.status(403).json({
+      error: "Forbidden",
+      message: `الصلاحية المطلوبة غير متوفرة لهذا الحساب. الرتب المسموح بها: (${allowedRoles.join(", ")})`
+    });
+  };
+}
+
+/**
  * Optional Admin Auth Middleware (for endpoints that have public view + extra admin data)
  */
 export function optionalAdminAuth(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  const adminKeyHeader = (req.headers["x-admin-key"] || req.headers["x-admin-token"]) as string;
+  let token = "";
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    token = authHeader.substring(7).trim();
+  } else if (adminKeyHeader) {
+    token = adminKeyHeader.trim();
+  }
+
+  if (!token) {
     return next();
   }
 
-  const token = authHeader.substring(7).trim();
+  const envAdminKey = process.env.ADMIN_API_KEY || process.env.ADMIN_SECRET;
+  if (envAdminKey && timingSafeCompare(token, envAdminKey)) {
+    req.adminUser = {
+      uid: "service_admin",
+      email: SUPER_ADMIN_EMAIL,
+      name: "API Administrator",
+      role: "super_admin",
+      permissions: ["*"],
+      authTime: Date.now()
+    };
+    return next();
+  }
+
   const tokenVerification = verifyFirebaseTokenPayload(token);
   if (tokenVerification.valid && tokenVerification.payload) {
     const payload = tokenVerification.payload;
     const userEmail = (payload.email || "").toLowerCase().trim();
-    if (userEmail === SUPER_ADMIN_EMAIL.toLowerCase() || payload.admin === true || payload.role === "admin") {
+    if (userEmail === SUPER_ADMIN_EMAIL.toLowerCase() || payload.admin === true || payload.role === "admin" || payload.role === "editor") {
+      const assignedRole: AdminRole = userEmail === SUPER_ADMIN_EMAIL.toLowerCase() ? "super_admin" : (payload.role === "editor" ? "editor" : "admin");
       req.adminUser = {
         uid: payload.sub,
         email: userEmail,
         name: payload.name || "Admin",
-        role: "admin",
+        role: assignedRole,
+        permissions: assignedRole === "super_admin" ? ["*"] : ["view_reports", "manage_merchants", "manage_coupons", "manage_products"],
         authTime: payload.auth_time || Math.floor(Date.now() / 1000)
       };
     }

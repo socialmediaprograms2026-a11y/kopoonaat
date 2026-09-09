@@ -14,6 +14,8 @@ import { CouponModal } from "./components/CouponModal";
 import { SeoStructuredData } from "./components/SeoStructuredData";
 import { AffiliateSetupModal } from "./components/AffiliateSetupModal";
 import { AdminDashboard } from "./components/AdminDashboard";
+import { AdminAuthGate } from "./components/admin/AdminAuthGate";
+import { useAuth } from "./context/AuthContext";
 import { SmartSearchModal } from "./components/SmartSearchModal";
 import { AllProductsPage } from "./components/AllProductsPage";
 import { CompetitorMonitor } from "./components/CompetitorMonitor";
@@ -71,6 +73,7 @@ function parseCurrentUrl(): { tab: string; brandId: string | null } {
 }
 
 export default function App() {
+  const { user, isAdmin } = useAuth();
   const initialUrl = useMemo(() => parseCurrentUrl(), []);
   const [activeTab, setActiveTab] = useState<string>(initialUrl.tab);
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(initialUrl.brandId);
@@ -259,7 +262,17 @@ export default function App() {
         )}
 
         {activeTab === "competitors" && <CompetitorMonitor />}
-        {activeTab === "admin" && <AdminDashboard />}
+        {activeTab === "admin" && (
+          <AdminAuthGate 
+            onBackToPublic={() => {
+              setActiveTab("coupons");
+              setSelectedBrandId(null);
+              if (typeof window !== "undefined") {
+                window.history.pushState({}, "", "/");
+              }
+            }} 
+          />
+        )}
         {activeTab === "models" && <ModelsDirectory />}
         {activeTab === "niches" && (
           <NichesRankings 
@@ -316,18 +329,20 @@ export default function App() {
           <span>مراقبة المنافسين 🎯</span>
         </button>
 
-        <button
-          onClick={() => {
-            setActiveTab("admin");
-            setSelectedBrandId(null);
-          }}
-          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
-            activeTab === "admin" ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-          }`}
-        >
-          <ShieldCheck className="w-3.5 h-3.5" />
-          <span>لوحة الإدارة (Admin)</span>
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => {
+              setActiveTab("admin");
+              setSelectedBrandId(null);
+            }}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
+              activeTab === "admin" ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>لوحة الإدارة</span>
+          </button>
+        )}
 
         <button
           onClick={() => {
@@ -432,12 +447,14 @@ export default function App() {
               >
                 عروض المنتجات 🔥
               </button>
-              <button 
-                onClick={() => { setActiveTab("admin"); setSelectedBrandId(null); scrollToTop(); }} 
-                className="hover:text-emerald-600 transition-colors font-bold text-slate-800"
-              >
-                لوحة التحكم (Admin)
-              </button>
+              {isAdmin && (
+                <button 
+                  onClick={() => { setActiveTab("admin"); setSelectedBrandId(null); scrollToTop(); }} 
+                  className="hover:text-emerald-600 transition-colors font-bold text-slate-800"
+                >
+                  لوحة الإدارة (Admin)
+                </button>
+              )}
               <button onClick={() => { setActiveTab("models"); setSelectedBrandId(null); scrollToTop(); }} className="hover:text-emerald-600 transition-colors">
                 أفضل النماذج
               </button>

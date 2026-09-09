@@ -33,7 +33,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: "coupons", label: "كوبونات وعروض المتاجر 🇸🇦", icon: Tag },
     { id: "products", label: "عروض المنتجات المخفضة 🔥", icon: ShoppingBag },
     { id: "competitors", label: "مراقبة المنافسين 🎯", icon: Target },
-    { id: "admin", label: "لوحة التحكم الحقيقية (Admin)", icon: ShieldCheck },
     { id: "models", label: "أفضل النماذج الناجحة", icon: Compass },
     { id: "niches", label: "النيشات وأحجام البحث", icon: TrendingUp },
     { id: "seo-playbook", label: "خارطة تصدر قوقل", icon: ShieldCheck },
@@ -208,6 +207,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {configuredAffiliateCount}
                   </span>
                 )}
+              </button>
+            )}
+
+            {/* Admin Portal Quick Access (Authorized Admins Only) */}
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab("admin")}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                  activeTab === "admin"
+                    ? "bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-600/20"
+                    : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300"
+                }`}
+                title="لوحة تحكم المسؤول (Admin Portal)"
+              >
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span className="hidden sm:inline">لوحة الإدارة</span>
               </button>
             )}
 

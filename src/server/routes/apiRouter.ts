@@ -843,6 +843,37 @@ apiRouter.get("/trending-niches", (req: Request, res: Response): void => {
 // -------------------------------------------------------------
 export const adminRouter = Router();
 
+// Admin Authentication & Verification endpoint (Safe introspection)
+adminRouter.get("/auth/me", (req: Request, res: Response): void => {
+  if (!req.adminUser) {
+    res.status(401).json({ error: "Unauthorized", message: "جلسة الأدمن غير نشطة أو غير موثقة" });
+    return;
+  }
+  res.json({
+    success: true,
+    user: {
+      uid: req.adminUser.uid,
+      email: req.adminUser.email,
+      name: req.adminUser.name,
+      role: req.adminUser.role,
+      permissions: req.adminUser.permissions,
+      authTime: req.adminUser.authTime
+    }
+  });
+});
+
+adminRouter.post("/auth/verify", (req: Request, res: Response): void => {
+  if (!req.adminUser) {
+    res.status(401).json({ error: "Unauthorized", valid: false });
+    return;
+  }
+  res.json({
+    valid: true,
+    role: req.adminUser.role,
+    email: req.adminUser.email
+  });
+});
+
 adminRouter.get("/overview", (req: Request, res: Response): void => {
   const merchants = db.getMerchants();
   const coupons = db.getCoupons();

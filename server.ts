@@ -29,6 +29,12 @@ app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 app.use(sanitizeRequestMiddleware);
 
+// Strict SEO isolation for admin routes (No indexing or archiving by search engines)
+app.use("/admin*", (req: Request, res: Response, next: NextFunction) => {
+  res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
+  next();
+});
+
 // Start background cron / sync engine
 syncService.startCronJobs();
 
@@ -200,7 +206,10 @@ Allow: /product/
 Allow: /seo-playbook
 Allow: /models
 Allow: /niches
+Disallow: /admin
+Disallow: /admin/
 Disallow: /api/admin
+Disallow: /api/admin/
 Disallow: /go/
 
 User-agent: Googlebot
@@ -210,7 +219,10 @@ Allow: /products
 Allow: /brand/
 Allow: /category/
 Allow: /product/
+Disallow: /admin
+Disallow: /admin/
 Disallow: /api/admin
+Disallow: /api/admin/
 Disallow: /go/
 
 User-agent: Googlebot-Image
@@ -604,6 +616,20 @@ function escapeHtml(str: string): string {
 function generatePreRenderedSeoHtml(html: string, req: Request): string {
   const baseUrl = getBaseUrl(req);
   const pathName = req.path.toLowerCase();
+
+  // Strict SEO isolation for admin paths
+  if (pathName.startsWith("/admin")) {
+    let modified = html;
+    modified = modified.replace(/<title>.*?<\/title>/i, `<title>بوابة إدارة النظام | لوحة التحكم المشفرة</title>`);
+    modified = modified.replace(
+      /<meta\s+name=["']description["']\s+content=["'].*?["']\s*\/?>/i,
+      `<meta name="description" content="منطقة إدارة خاصة ومقيدة بالمسؤولين فقط." />`
+    );
+    if (!modified.includes('name="robots"')) {
+      modified = modified.replace("</head>", '<meta name="robots" content="noindex, nofollow, noarchive" /></head>');
+    }
+    return modified;
+  }
 
   let pageTitle = "كوبونات وعروض السعودية 2026 | أحدث أكواد الخصم الحصرية والمجربة";
   let pageDesc = "منصة كوبونات وعروض المتاجر الإلكترونية في السعودية مع أكواد خصم حصرية مجربة يومياً لأمازون، نون، نمشي، وعشرات المتاجر مع دليل سيو متكامل.";
